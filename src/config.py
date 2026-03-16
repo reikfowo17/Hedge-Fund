@@ -5,8 +5,8 @@ IS_KAGGLE = os.path.exists('/kaggle/input')
 
 # ── Data Paths ──
 if IS_KAGGLE:
-    TRAIN_PATH = "/kaggle/input/hedge-fund-train-test/train.parquet"
-    TEST_PATH  = "/kaggle/input/hedge-fund-train-test/test.parquet"
+    TRAIN_PATH = "/kaggle/input/datasets/heon29/hegde-fund/train.parquet"
+    TEST_PATH  = "/kaggle/input/datasets/heon29/hegde-fund/test.parquet"
     OUTPUT_DIR = "/kaggle/working"
 else:
     TRAIN_PATH = "data/train.parquet"

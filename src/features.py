@@ -5,43 +5,45 @@ from config import GROUP_COLS
 
 def create_lag_features(df, feature_cols, lags=[1, 2, 3]):
     df = df.sort_values(GROUP_COLS + ["ts_index"])
+    grouped = df.groupby(GROUP_COLS)
     
     for col in feature_cols:
+        col_series = grouped[col]
         for lag in lags:
-            col_name = f"{col}_lag{lag}"
-            df[col_name] = df.groupby(GROUP_COLS)[col].shift(lag)
+            df[f"{col}_lag{lag}"] = col_series.shift(lag)
     
     return df
 
 
 def create_rolling_features(df, feature_cols, windows=[3, 5]):
     df = df.sort_values(GROUP_COLS + ["ts_index"])
+    grouped = df.groupby(GROUP_COLS)
     
     for col in feature_cols:
+        col_series = grouped[col]
         for w in windows:
-            df[f"{col}_rmean{w}"] = df.groupby(GROUP_COLS)[col].transform(
-                lambda x: x.rolling(w, min_periods=1).mean()
-            )
-            df[f"{col}_rstd{w}"] = df.groupby(GROUP_COLS)[col].transform(
-                lambda x: x.rolling(w, min_periods=1).std()
-            )
+            df[f"{col}_rmean{w}"] = col_series.transform(lambda x: x.rolling(w, min_periods=1).mean())
+            df[f"{col}_rstd{w}"] = col_series.transform(lambda x: x.rolling(w, min_periods=1).std())
     
     return df
 
 
 def create_diff_features(df, feature_cols):
     df = df.sort_values(GROUP_COLS + ["ts_index"])
+    grouped = df.groupby(GROUP_COLS)
     
     for col in feature_cols:
-        df[f"{col}_diff1"] = df.groupby(GROUP_COLS)[col].diff(1)
+        df[f"{col}_diff1"] = grouped[col].diff(1)
     
     return df
 
 
 def create_cross_sectional_features(df, feature_cols):
+    groups = ["sub_category", "horizon", "ts_index"]
+    means = df.groupby(groups)[feature_cols].transform("mean")
+    
     for col in feature_cols:
-        group_mean = df.groupby(["sub_category", "horizon", "ts_index"])[col].transform("mean")
-        df[f"{col}_dev_subcat"] = df[col] - group_mean
+        df[f"{col}_dev_subcat"] = df[col] - means[col]
     
     return df
 
