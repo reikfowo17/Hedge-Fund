@@ -1,1 +1,28 @@
+# Data files
 *.parquet
+
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Environment
+.env
+venv/
+.venv/
+
+# Models
+*.pkl
+*.joblib
