@@ -30,23 +30,23 @@ TOP_LAG_FEATURES = [
     "feature_al", "feature_v", "feature_bp",
     "feature_a", "feature_b", "feature_c",
 ]
-LAG_STEPS = [1, 2, 3, 5]
-ROLLING_WINDOWS = [3, 5, 10]
+LAG_STEPS = [1, 2, 3, 5, 7, 10]
+ROLLING_WINDOWS = [3, 5, 10, 20]
 
 # ── LightGBM Base Params ──
 LGBM_BASE_PARAMS = {
     "objective":       "regression",
     "metric":          "rmse",
     "boosting_type":   "gbdt",
-    "learning_rate":   0.05,
-    "num_leaves":      63,
+    "learning_rate":   0.01,
+    "num_leaves":      127,
     "max_depth":       -1,
-    "min_child_samples": 100,
-    "feature_fraction": 0.7,
-    "bagging_fraction": 0.7,
-    "bagging_freq":    5,
-    "lambda_l1":       0.1,
-    "lambda_l2":       0.1,
+    "min_child_samples": 50,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq":    3,
+    "lambda_l1":       0.05,
+    "lambda_l2":       0.05,
     "seed":            SEED,
     "verbosity":       -1,
     "n_jobs":          -1,
