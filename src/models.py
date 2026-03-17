@@ -10,11 +10,6 @@ def train_lgbm_single(X_train, y_train, w_train,
                        X_val=None, y_val=None, w_val=None,
                        params=None, num_boost_round=5000,
                        early_stopping_rounds=100, verbose_eval=200):
-    """
-    Train a single LightGBM model.
-    
-    Returns: trained model
-    """
     params = params or LGBM_BASE_PARAMS.copy()
     
     cat_features = [c for c in X_train.columns 
