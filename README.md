@@ -20,11 +20,17 @@
 ## 🚀 Hướng Dẫn Chạy & Kiểm Thử Trên Kaggle
 
 ### Bước 1: Kéo Code Từ GitHub Về
-Tạo một Notebook mới trên Kaggle. Trong cell đầu tiên, clone repo này về:
+Tạo một Notebook mới trên Kaggle. Thêm GitHub Token vào **Add-ons → Secrets** (label: `GITHUB_TOKEN`).
 ```python
-# Cell 1: Clone repo
-!rm -rf /kaggle/working/repo
-!git clone https://github.com/reikfowo17/CS116.git /kaggle/working/repo
+# Cell 1: Clone repo (Private, dùng Kaggle Secrets)
+from kaggle_secrets import UserSecretsClient
+import os
+
+secrets = UserSecretsClient()
+github_token = secrets.get_secret("GITHUB_TOKEN")
+
+os.system("rm -rf /kaggle/working/repo")
+os.system(f"git clone https://{github_token}@github.com/reikfowo17/CS116.git /kaggle/working/repo")
 
 import sys
 sys.path.append('/kaggle/working/repo/src')
