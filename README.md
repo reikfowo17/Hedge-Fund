@@ -24,7 +24,7 @@ Tạo một Notebook mới trên Kaggle. Thêm GitHub Token vào **Add-ons → S
 ```python
 # Cell 1: Clone repo (Private, dùng Kaggle Secrets)
 from kaggle_secrets import UserSecretsClient
-import os
+import os, sys
 
 secrets = UserSecretsClient()
 github_token = secrets.get_secret("GITHUB_TOKEN")
@@ -32,62 +32,37 @@ github_token = secrets.get_secret("GITHUB_TOKEN")
 os.system("rm -rf /kaggle/working/repo")
 os.system(f"git clone https://{github_token}@github.com/reikfowo17/CS116.git /kaggle/working/repo")
 
-import sys
 sys.path.append('/kaggle/working/repo/src')
 ```
 
-### Bước 2: Import Modules Gắn Với Dữ Liệu
-Hãy đảm bảo phần Data bên góc phải Kaggle Notebook của bạn đã thêm tập dataset chứa `train.parquet` và `test.parquet`.
+### Bước 2: Import Modules & Load Dữ Liệu
+Hãy đảm bảo phần **Data** bên góc phải Kaggle Notebook của bạn đã thêm tập dataset chứa `train.parquet` và `test.parquet`.
 ```python
-# Cell 2: Import các hàm cấu trúc chính
+# Cell 2: Import & Load data
 from config import *
 from data_loader import load_data
-from features import engineer_features
-from models import train_per_horizon, predict_per_horizon, create_submission
-from evaluation import weighted_rmse_score
+
+train_df, test_df = load_data(reduce_memory=True)
 ```
 
-### Bước 3: Load và Feature Engineering
+### Bước 3: Huấn Luyện & Dự Đoán
+
+Feature engineering được tích hợp bên trong, không cần gọi riêng.
 ```python
-# Load data
-train_df, test_df = load_data()
+# Cell 3: Train & Predict
+from models import train_and_predict_all_horizons, create_submission
 
-# Tiến hành sinh Features (Lag, Rolling, Diff...) 
-train_df, test_df = engineer_features(
-    train_df, test_df,
-    lag_features=TOP_LAG_FEATURES, lags=LAG_STEPS,
-    rolling_features=TOP_LAG_FEATURES[:3], windows=ROLLING_WINDOWS,
-    diff_features=TOP_LAG_FEATURES[:3],
-)
+sub_clip, sub_raw, scores = train_and_predict_all_horizons()
 ```
 
-### Bước 4: Chạy Huấn Luyện & Đánh Giá
-Tách rời 4 mô hình để huấn luyện riêng rẽ cho từng **Horizon (1, 3, 10, 25)**
+### Bước 4: Xuất File Submission
 ```python
-# Tách các feature sử dụng cho đầu vào model
-features = [c for c in train_df.columns if c not in ["id", "y_target", "weight"]]
-print(f"Tổng số features dùng để train: {len(features)}")
+# Cell 4: Tạo file submission.csv
+create_submission(sub_clip, "submission.csv")
 
-# Huấn luyện mô hình và lấy điểm nội suy
-models, scores = train_per_horizon(
-    train_df, features, split_ts_index=3000
-)
-# Model sẽ in ra score (0 đến 1) của từng horizon.
+# Copy ra thư mục gốc để Kaggle nhận Output
+sub_clip.to_csv("/kaggle/working/submission.csv", index=False)
 ```
-
-### Bước 5: Dự Đoán Kết Quả & Xuất File Submission
-```python
-# Tiến hành Predict trên tập test:
-from utils import check_submission
-
-submission = predict_per_horizon(models, test_df, features)
-check_submission(submission, test_df)
-
-# Tạo file "submission.csv" để Kaggle lấy dữ liệu chấm điểm
-create_submission(submission, "submission.csv")
-```
-
----
 
 ## 💻 Local Setup
 ```bash

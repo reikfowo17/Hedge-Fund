@@ -25,29 +25,37 @@ META_COLS  = ["id", "code", "sub_code", "sub_category", "horizon", "ts_index"]
 GROUP_COLS = ["code", "sub_code", "sub_category", "horizon"]
 
 # ── Feature Engineering Config ──
-# Top features to create lags for (update after EDA / feature importance)
-TOP_LAG_FEATURES = [
-    "feature_al", "feature_v", "feature_bp",
-    "feature_a", "feature_b", "feature_c",
-]
-LAG_STEPS = [1, 2, 3, 5, 7, 10]
-ROLLING_WINDOWS = [3, 5, 10, 20]
+# Key features identified from competitor analysis
+KEY_FEATURES = ["feature_al", "feature_am", "feature_cg", "feature_by"]
+EXTRA_FEATURES = ["feature_s"]  # optional, check if exists
+LAG_STEPS = [1, 3, 5, 10, 25]
+ROLLING_WINDOWS = [5, 10, 20]
+
+# ── Validation Split ──
+VAL_THRESHOLD = 3500  # ts_index <= 3500 = train, > 3500 = val
+
+# ── Multi-Seed Ensemble ──
+SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11,
+         13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
+
+# ── Clipping ──
+CLIP_Q_LOW = 0.005
+CLIP_Q_HIGH = 0.995
 
 # ── LightGBM Base Params ──
 LGBM_BASE_PARAMS = {
-    "objective":       "regression",
-    "metric":          "rmse",
-    "boosting_type":   "gbdt",
-    "learning_rate":   0.01,
-    "num_leaves":      127,
-    "max_depth":       -1,
-    "min_child_samples": 50,
-    "feature_fraction": 0.8,
-    "bagging_fraction": 0.8,
-    "bagging_freq":    3,
-    "lambda_l1":       0.05,
-    "lambda_l2":       0.05,
-    "seed":            SEED,
-    "verbosity":       -1,
-    "n_jobs":          -1,
+    "objective":        "regression",
+    "metric":           "rmse",
+    "boosting_type":    "gbdt",
+    "learning_rate":    0.015,
+    "num_leaves":       90,
+    "max_depth":        -1,
+    "min_child_samples": 200,
+    "feature_fraction": 0.65,
+    "bagging_fraction": 0.75,
+    "bagging_freq":     5,
+    "lambda_l1":        0.1,
+    "lambda_l2":        10.0,
+    "verbosity":        -1,
+    "n_jobs":           -1,
 }
