@@ -5,10 +5,6 @@ from config import GROUP_COLS, KEY_FEATURES, EXTRA_FEATURES, LAG_STEPS, ROLLING_
 
 
 def compute_target_encoding_stats(train_path):
-    """
-    Tính target encoding stats TỪ SPLIT TRAIN ONLY (ts_index <= VAL_THRESHOLD)
-    để tránh data leakage.
-    """
     tmp = pd.read_parquet(train_path, columns=['sub_category', 'sub_code', 'y_target', 'ts_index'])
     train_only = tmp[tmp.ts_index <= VAL_THRESHOLD]
 
