@@ -36,7 +36,7 @@ sys.path.append('/kaggle/working/repo/src')
 ```
 
 ### Bước 2: Import Modules & Load Dữ Liệu
-Hãy đảm bảo phần **Data** bên góc phải Kaggle Notebook của bạn đã thêm tập dataset chứa `train.parquet` và `test.parquet`.
+Hãy đảm bảo phần **Data** đã thêm tập dataset chứa `train.parquet` và `test.parquet`.
 ```python
 # Cell 2: Import & Load data
 from config import *
@@ -47,7 +47,6 @@ train_df, test_df = load_data(reduce_memory=True)
 
 ### Bước 3: Huấn Luyện & Dự Đoán
 
-Feature engineering được tích hợp bên trong, không cần gọi riêng.
 ```python
 # Cell 3: Train & Predict
 from models import train_and_predict_all_horizons, create_submission
