@@ -73,6 +73,7 @@ def _train_xgb_ensemble(X_fit, y_fit, w_fit, X_val, y_val, w_val,
         mdl = xgb.XGBRegressor(
             **XGB_BASE_PARAMS,
             n_estimators=5000,
+            early_stopping_rounds=200,
             random_state=seed,
         )
         mdl.fit(
