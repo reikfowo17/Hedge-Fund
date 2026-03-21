@@ -8,7 +8,8 @@
 | 2 | 18/03 | LightGBM v2 (fixed pipeline) | Raw + lag(1,2,3) + rolling(3,5) + diff | H1:0.031, H3:0.052, H10:0.112, H25:0.141 | — | lr=0.05, num_leaves=63 |
 | 3 | 18/03 | LightGBM v3 (optimized) | + EWM + ratio + pctchg | H1:0.037, H3:0.058, H10:0.075, H25:0.157 | 0.1838 | lr=0.01, num_leaves=127 |
 | 4 | 19/03 | LightGBM v4 (20-seed + retrain-on-all) | Interactions + TargetEnc + CS-norm + Cyclical + Lag/Roll/EWM/Diff/Rank (~170 feats) | H1:0.080, H3:0.140, H10:0.222, H25:0.272 (Agg: 0.2353) | 0.2612 | 20 seeds, retrain-on-all, clipping, L1/L2 reg |
-| 5 | 20/03 | LightGBM v4.1 (+ feature selection) | Top 60 features (importance-based) | — | — | Probe model → feature importance → keep top 60 |
+| 5 | 20/03 | LightGBM v4.1 (+ feature selection) | Top 50-65 features per-horizon (importance-based) | H1:0.078, H3:0.139, H10:0.219, H25:0.275 (Agg: 0.2357) | 0.2566 ❌ | Feature selection giảm score so với v4 |
+| 6 | 21/03 | LGB+XGB v5 (blend) | Full ~170 feats, LGB 20-seed + XGB 10-seed | — | — | Blend 60% LGB + 40% XGB, retrain-on-all cả hai |
 
 ## Notes
 - Score range: 0 (worst) → 1 (best)
@@ -28,6 +29,10 @@
   - **Hyperparams**: lr=0.015, num_leaves=90, min_child_samples=200
   - **Val split**: ts_index=3500
 - v4 → v4.1 changes:
-  - **Feature Selection**: Train 1 probe model → lấy feature_importance → giữ top 60/~170 features
-  - Loại bỏ features noise → model tập trung vào signal mạnh
-  - In ra top 15 features per horizon để phân tích
+  - **Feature Selection**: Train 1 probe model → lấy feature_importance → giữ top 50-65 features
+  - ❌ Kết quả: giảm score → đã revert (disable feature selection)
+- v4 → v5 changes:
+  - **XGBoost**: Thêm XGBoost (10 seeds, lr=0.02, max_depth=7) song song với LightGBM
+  - **Blend**: 60% LGB + 40% XGB weighted average
+  - **Retrain-on-all**: Áp dụng cho cả LGB và XGB
+  - Output hiển thị score riêng LGB, XGB và Blend
