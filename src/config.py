@@ -82,7 +82,7 @@ XGB_BASE_PARAMS = {
     "colsample_bytree": 0.65,
     "reg_alpha":        0.1,
     "reg_lambda":       10.0,
-    "tree_method":      "gpu_hist" if HAS_GPU else "hist",
+    "tree_method":      "hist",
     "device":            "cuda" if HAS_GPU else "cpu",
     "verbosity":        0,
     "n_jobs":           -1,
