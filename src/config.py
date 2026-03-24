@@ -35,13 +35,11 @@ ROLLING_WINDOWS = [5, 10, 20]
 N_CV_SPLITS = 5
 
 # ── Seeds per CV fold ──
-CV_LGB_SEEDS = [42, 2024, 12345, 99, 420]
-CV_CAT_SEEDS = [42, 2024, 12345]
+CV_LGB_SEEDS = [42]
+CV_CAT_SEEDS = [42]
 
-# ── Seeds for final retrain-on-all ──
-FINAL_LGB_SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11,
-                   13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
-FINAL_CAT_SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11]
+FINAL_LGB_SEEDS = [42, 2024, 12345, 99, 420]
+FINAL_CAT_SEEDS = [42, 2024, 12345]
 
 
 # ── LightGBM Base Params ──

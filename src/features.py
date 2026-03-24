@@ -67,40 +67,48 @@ def build_features(data, target_stats):
             target_cols.append(ef)
 
     grouped = df.groupby(group_cols, sort=False)
+    new_cols = {}
 
     for col in target_cols:
         # Lags
         for lag in LAG_STEPS:
-            df[f'{col}_lag{lag}'] = grouped[col].shift(lag).astype(np.float32)
+            new_cols[f'{col}_lag{lag}'] = grouped[col].shift(lag).astype(np.float32)
 
         # Rolling mean + std + min + max (shift(1) before rolling)
         for w in ROLLING_WINDOWS:
             shifted = grouped[col].shift(1)
-            df[f'{col}_roll_mean_{w}'] = shifted.rolling(w, min_periods=1).mean().astype(np.float32)
-            df[f'{col}_roll_std_{w}'] = shifted.rolling(w, min_periods=1).std().astype(np.float32)
-            df[f'{col}_roll_min_{w}'] = shifted.rolling(w, min_periods=1).min().astype(np.float32)
-            df[f'{col}_roll_max_{w}'] = shifted.rolling(w, min_periods=1).max().astype(np.float32)
+            new_cols[f'{col}_roll_mean_{w}'] = shifted.rolling(w, min_periods=1).mean().astype(np.float32)
+            new_cols[f'{col}_roll_std_{w}'] = shifted.rolling(w, min_periods=1).std().astype(np.float32)
+            new_cols[f'{col}_roll_min_{w}'] = shifted.rolling(w, min_periods=1).min().astype(np.float32)
+            new_cols[f'{col}_roll_max_{w}'] = shifted.rolling(w, min_periods=1).max().astype(np.float32)
 
         # EWM
-        df[f'{col}_ewm_10'] = grouped[col].transform(
+        new_cols[f'{col}_ewm_10'] = grouped[col].transform(
             lambda x: x.ewm(span=10, min_periods=1).mean()
         ).astype(np.float32)
 
         # Diff
-        df[f'{col}_diff1'] = grouped[col].diff(1).astype(np.float32)
+        new_cols[f'{col}_diff1'] = grouped[col].diff(1).astype(np.float32)
 
         # Rank (cross-sectional)
-        df[f'{col}_rank'] = df.groupby('ts_index')[col].rank(pct=True).astype(np.float32)
+        new_cols[f'{col}_rank'] = df.groupby('ts_index')[col].rank(pct=True).astype(np.float32)
+
+    if new_cols:
+        df = pd.concat([df, pd.DataFrame(new_cols, index=df.index)], axis=1)
 
     # ── 7. Momentum features ──
+    mom_cols = {}
     for col in KEY_FEATURES:
         lag1_col = f'{col}_lag1'
         lag5_col = f'{col}_lag5'
         roll_mean_5 = f'{col}_roll_mean_5'
         if lag1_col in df.columns and lag5_col in df.columns:
-            df[f'{col}_mom_1_5'] = (df[lag1_col] - df[lag5_col]).astype(np.float32)
+            mom_cols[f'{col}_mom_1_5'] = (df[lag1_col] - df[lag5_col]).astype(np.float32)
         if lag1_col in df.columns and roll_mean_5 in df.columns:
-            df[f'{col}_dev_from_roll5'] = (df[lag1_col] - df[roll_mean_5]).astype(np.float32)
+            mom_cols[f'{col}_dev_from_roll5'] = (df[lag1_col] - df[roll_mean_5]).astype(np.float32)
+
+    if mom_cols:
+        df = pd.concat([df, pd.DataFrame(mom_cols, index=df.index)], axis=1)
 
     gc.collect()
 
