@@ -3,7 +3,4 @@ pandas
 lightgbm
 catboost
 scikit-learn
-optuna
-matplotlib
-seaborn
 pyarrow

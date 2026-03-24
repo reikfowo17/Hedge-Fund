@@ -10,7 +10,8 @@
 | 4 | 19/03 | LightGBM v4 (20-seed + retrain-on-all) | Interactions + TargetEnc + CS-norm + Cyclical + Lag/Roll/EWM/Diff/Rank (~170 feats) | H1:0.080, H3:0.140, H10:0.222, H25:0.272 (Agg: 0.2353) | 0.2612 | 20 seeds, retrain-on-all, clipping, L1/L2 reg |
 | 5 | 20/03 | LightGBM v4.1 (+ feature selection) | Top 50-65 features per-horizon (importance-based) | H1:0.078, H3:0.139, H10:0.219, H25:0.275 (Agg: 0.2357) | 0.2566 ❌ | Feature selection giảm score so với v4 |
 | 6 | 21/03 | LGB+XGB v5 (blend) | Full ~170 feats, LGB 20-seed + XGB 10-seed | — | 0.2548 | Blend 85% LGB + 15% XGB, retrain-on-all cả hai |
-| 7 | 24/03 | LGB+CAT v6 (Ridge, 5-fold CV, Quant Hacks) | V5 feats + time_phase + lifecycle + momentum + roll_min/max | — | — | CatBoost thay XGB, Ridge stacking, 5-fold CV, Per-fold Target Encoding, Neutralization, Hard Clip, Shrinkage |
+| 7 | 24/03 | LGB+CAT v6 (Ridge, 5-fold CV, Quant Hacks) | V5 feats + time_phase + lifecycle + momentum + roll_min/max (~150+ feats) | — | — | Details below |
+
 ## Notes
 - Score range: 0 (worst) → 1 (best)
 - Public LB uses 25% of test data
@@ -24,7 +25,7 @@
   - **Rolling std**: Thêm rolling std bên cạnh rolling mean
   - **Feature rank**: rank(pct=True) theo ts_index
   - **Cyclical time**: sin/cos(2π·ts/100)
-  - **Regularization**: L1=0.1, L2=10.0 
+  - **Regularization**: L1=0.1, L2=10.0
   - **Clipping**: Clip predictions theo quantile [0.005, 0.995]
   - **Hyperparams**: lr=0.015, num_leaves=90, min_child_samples=200
   - **Val split**: ts_index=3500
@@ -37,13 +38,12 @@
   - **Retrain-on-all**: Áp dụng cho cả LGB và XGB
   - Output hiển thị score riêng LGB, XGB và Blend
 - v5 → v6 changes:
-  - **CatBoost**: Thay XGBoost bằng CatBoost (ordered boosting, mạnh với categoricals). XGB vẫn là fallback.
-  - **Ridge Stacking**: Thay fixed blend 85/15 bằng Ridge(alpha=1.0) học optimal weights từ OOF per-horizon.
-  - **Feature Engineering Mới**: `ts_index % k` (seasonality), obs_idx_in_group, time_since_group_start (lifecycle), lag1−lag5, dev_from_rolling_mean (momentum), rolling min/max.
-  - **Anti-leakage**: shift(1) trước rolling trên target-derived features.
-  - **LGBM Params**: Tăng num_leaves(90→127), L1(0.1→2.0). Thêm `extra_trees=True`, `path_smooth=1.0` giúp cây ngẫu nhiên mượt hơn, chống nhiễu loạn thị trường.
-  - **5-Fold TimeSeriesSplit**: Thay vì validation 1 fold cuối, dùng TimeSeriesSplit chia 5 nếp gấp thời gian luân phiên để evaluate toàn diện.
-  - **Per-Fold Target Encoding**: Target Encoding của SubCategory/SubCode được tính RIÊNG lấy stats của từng Fold train, triệt tiêu Rò Rỉ Data (Target Leakage).
-  - **Neutralization (Khử Bias)**: Test output trừ đi mean(`preds - mean(preds)`). Ép mô hình tập trung vào việc rank hiệu suất mã cổ phiếu thay vì ăn ké xu hướng của toàn thị trường.
-  - **Hard Clipping**: Cắt giới hạn `[-0.02, 0.02]` thay vì Quantile. Chặn rủi ro bị điểm RMSE phạt nát mẫu số khi model quá tự tin đoán sai.
-  - **Shrinkage**: Hạ toàn bộ dự báo test xuống 10% `(* 0.9)` tăng độ an toàn.
+  - **CatBoost**: Thay XGBoost bằng CatBoost (ordered boosting, categoricals-friendly)
+  - **Ridge Stacking**: Thay fixed blend 85/15 bằng Ridge(alpha=1.0) học optimal weights từ OOF
+  - **5-Fold TimeSeriesSplit**: Thay validation 1 fold cuối bằng 5 nếp gấp thời gian
+  - **Per-Fold Target Encoding**: Triệt tiêu target leakage
+  - **New Features**: time_phase, lifecycle, momentum, roll_min/max
+  - **Anti-leakage**: shift(1) trước rolling trên target-derived features
+  - **LGBM Params**: num_leaves 90→127, L1 0.1→2.0, extra_trees, path_smooth
+  - **Post-Processing**: Neutralization + Hard Clip [-0.02, 0.02] + Shrinkage ×0.9
+  - **Performance**: DataFrame defragmentation, reduced seeds for faster runtime

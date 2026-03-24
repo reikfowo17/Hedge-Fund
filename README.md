@@ -7,14 +7,18 @@
 ## Competition
 [Hedge Fund - Time Series Forecasting](https://kaggle.com/competitions/ts-forecasting)
 
-## Project Structure
+### Project Structure
 ```
-├── notebooks/          # Kaggle notebooks
-├── src/                # Reusable Python modules
-├── submissions/        # CSV submission files
-├── docs/               # Documentation & logs
-├── requirements.txt    # Dependencies
-└── .gitignore
+├── src/
+│   ├── config.py         # Paths, seeds, hyperparameters
+│   ├── data_loader.py    # Load & preprocess parquet data
+│   ├── features.py       # Feature engineering pipeline
+│   ├── models.py         # Training, CV, stacking, prediction
+│   └── evaluation.py     # Weighted RMSE scoring
+├── docs/
+│   └── experiment_log.md # Experiment tracking
+├── requirements.txt
+└── README.md
 ```
 
 ## Hướng Dẫn Chạy Trên Kaggle
