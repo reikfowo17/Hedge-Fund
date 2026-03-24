@@ -72,6 +72,3 @@ CATBOOST_PARAMS = {
     "early_stopping_rounds": 200,
 }
 
-# ── CatBoost Seeds ──
-CAT_SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11]
-

@@ -11,7 +11,7 @@ from config import (
     TARGET, WEIGHT, HORIZONS,
     CV_LGB_SEEDS, CV_CAT_SEEDS,
     FINAL_LGB_SEEDS, FINAL_CAT_SEEDS,
-    TRAIN_PATH, N_CV_SPLITS
+    TRAIN_PATH, TEST_PATH, N_CV_SPLITS
 )
 from evaluation import weighted_rmse_score
 from features import compute_target_encoding_stats, build_features, get_feature_columns
@@ -102,7 +102,6 @@ def solve_horizon(horizon):
 
     # ── 1. Load data ──
     tr = pd.read_parquet(TRAIN_PATH).query('horizon == @horizon').reset_index(drop=True)
-    from config import TEST_PATH
     te = pd.read_parquet(TEST_PATH).query('horizon == @horizon').reset_index(drop=True)
     print(f'Data: train={len(tr):,}, test={len(te):,}')
 
@@ -197,7 +196,7 @@ def solve_horizon(horizon):
 
     score_lgb = weighted_rmse_score(oof_y[valid], oof_lgb[valid], oof_w[valid])
     score_cat = weighted_rmse_score(oof_y[valid], oof_cat[valid], oof_w[valid])
-    score_ridge = weighted_rmse_score(oof_y[valid], oof_pred, oof_w[valid])
+    score_ridge = weighted_rmse_score(oof_y[valid], raw_oof_pred, oof_w[valid])
     print(f'  OOF: LGB={score_lgb:.6f} | CAT={score_cat:.6f} | Ridge={score_ridge:.6f}')
 
     # ── 4. Final retrain on ALL data → predict test ──
