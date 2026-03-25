@@ -16,6 +16,7 @@ else:
 # ── Constants ──
 SEED = 42
 HORIZONS = [1, 3, 10, 25]
+SKIP_CAT_HORIZONS = [10, 25]
 TARGET = "y_target"
 WEIGHT = "weight"
 
@@ -64,7 +65,7 @@ LGBM_BASE_PARAMS = {
 
 # ── CatBoost Base Params ──
 CATBOOST_PARAMS = {
-    "iterations":       3000,
+    "iterations":       1500,
     "learning_rate":    0.03,
     "depth":            7,
     "l2_leaf_reg":      3.0,
