@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import gc
-from config import GROUP_COLS, KEY_FEATURES, EXTRA_FEATURES, LAG_STEPS, ROLLING_WINDOWS
+from config import GROUP_COLS, KEY_FEATURES, EXTRA_FEATURES, LAG_STEPS, ROLLING_WINDOWS, OPTIMAL_SHIFTS, TARGET
 
 
 def compute_target_stats(df):
@@ -28,7 +28,7 @@ def compute_freq_encoding(df):
     return freq
 
 
-def build_features(data, target_stats, freq_stats):
+def build_features(data, target_stats, freq_stats, horizon):
     """Build all features. Handles concat train+test data (y_target can be NaN)."""
     df = data.copy()
     gm = target_stats.get('global_mean', 0.0)
@@ -172,6 +172,37 @@ def build_features(data, target_stats, freq_stats):
             df[f'{col}_mom15'] = (df[l1] - df[l5]).astype(np.float32)
         if E(l1) and E(rm5):
             df[f'{col}_dev5']  = (df[l1] - df[rm5]).astype(np.float32)
+
+    # Re-create groupby so new columns (pseudo_*, y_*) are visible
+    grouped = df.groupby(GROUP_COLS, sort=False)
+
+    # ── 11. Pseudo-target features (feature_al is #1 strongest signal)
+    # feature_al shifted by -h = value from h steps ago = causal "pseudo-target"
+    if E('feature_al'):
+        df['pseudo_al'] = grouped['feature_al'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
+    if E('feature_am'):
+        df['pseudo_am'] = grouped['feature_am'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
+    if E('feature_cg'):
+        df['pseudo_cg'] = grouped['feature_cg'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
+    if E('feature_s'):
+        df['pseudo_s']  = grouped['feature_s'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
+    # Momentum of pseudo-targets
+    if E('pseudo_al'):
+        df['pseudo_al_diff'] = grouped['pseudo_al'].diff(1).astype(np.float32)
+
+    # ── 12. Target lags (autocorrelation signal)
+    # CAUTION: past target is available in train rows, NaN in test rows.
+    # For test, these will be 0.0 after fillna(0) — LGB can learn to ignore them.
+    if TARGET in df.columns:
+        df['y_lag1']       = grouped[TARGET].shift(1).astype(np.float32)
+        df['y_lag3']       = grouped[TARGET].shift(3).astype(np.float32)
+        df['y_diff1']      = grouped[TARGET].diff(1).astype(np.float32)
+    # Expanding mean of target up to (but not including) current row
+    if TARGET in df.columns:
+        df['_cumsum']      = grouped[TARGET].cumsum().shift(1)
+        df['_cumcnt']      = grouped[TARGET].cumcount()
+        df['y_expand_mean'] = (df['_cumsum'] / (df['_cumcnt'] + 1e-9)).astype(np.float32)
+        df.drop(columns=['_cumsum', '_cumcnt'], inplace=True)
 
     # ── 10. Fill NaN/Inf ──
     preserved_y = df['y_target'].copy() if 'y_target' in df.columns else None
