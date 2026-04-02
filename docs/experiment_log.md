@@ -11,7 +11,8 @@
 | 5 | 20/03 | LightGBM v4.1 (+ feature selection) | Top 50-65 features per-horizon (importance-based) | H1:0.078, H3:0.139, H10:0.219, H25:0.275 (Agg: 0.2357) | 0.2566 ❌ | Feature selection giảm score so với v4 |
 | 6 | 25/03 | LGB+CAT v5 (Ridge stacking, 5-fold CV) | V4 feats + time_phase + lifecycle + momentum + roll_min/max + target enc `code`, percentile clip (~150+ feats) | H1:0.047, H3:0.057, H10:0.107, H25:0.135 (Agg: 0.116) | — | Ridge stacking LGB+CAT, skip CAT H=10,25, percentile clip [p0.5,p99.5] |
 | 7 | 26/03 | LGB v6 (Hybrid — Calibration + Concat + FreqEnc) | 190 feats, 15 LGB seeds, no CAT, linear calibration, train+test concat, freq encoding | H1:0.064, H3:0.110, H10:0.226, H25:0.297 (Agg: 0.248) | 0.2462 | Pure LGB 15-seed, ~4h runtime, details below |
-| 8 | 30/03 | LGB v7 (Enhanced v4) — Pseudo-targets + Target Lags + Recency Weighting + Native Categoricals | ~170 feats, 15 seeds, per-horizon scale grid, feature pruning top-100, LGB native API + skill metric | H1:0.095, H3:0.175, H10:0.291, H25:0.355 (Agg: 0.298) | — | Merged v4 enhancements into src/ module; pseudo-target features (feature_al/am/cg/s shifted by optimal shifts per horizon); target lag features (y_lag1, y_lag3, y_diff1, y_expand_mean); linear recency weighting (factor=42); LGB native API with categorical_feature; per-horizon scale grid search; feature pruning top-100 by gain |
+| 8 | 30/03 | LGB v7 | same ~170 feats, 15 seeds, pseudo-targets + target lags + recency weighting + top-100 prune + LGB native API + per-horizon scale grid | H1:0.872837, H3:0.833179, H10:0.751853, H25:0.760920 (Agg raw: 0.769606, scaled: 0.775646) | 0.5914 | So với V6: BỎ linear calibration → THAY per-horizon scale grid; THÊM pseudo-target/target-lag/recency weighting/feature pruning/native cats; Public LB 0.2462→0.5914 |
+| 9 | 03/04 | LGB v8 | ~190 feats, 10 seeds, expanded pseudo-targets + per-code scaling + finer scale grid + top-130 prune | TBD | TBD | So với V7: THÊM pseudo offsets/interactions; THAY per-horizon→per-code scaling; finer grid 0.90-1.40; seeds 15→10; top 100→130 |
 
 ## Notes
 - Score range: 0 (worst) → 1 (best)
@@ -55,13 +56,22 @@
   - **15 LGB seeds**: Scale up từ 7 seeds → ổn định hơn
   - **Estimated runtime**: ~4h (< 6h limit)
   - **Kaggle Discussion insight**: Host xác nhận score > 0.5 là dùng data leak. Private LB sẽ neutralize. Sequential prediction bắt buộc.
-- v6 → v7 changes (Enhanced v4):
-  - **Pseudo-target features**: `feature_al/am/cg/s` shifted by `OPTIMAL_SHIFTS[horizon]` = giá trị từ h steps trước → causal signal mạnh nhất
-  - **Target lag features**: `y_lag1`, `y_lag3`, `y_diff1`, `y_expand_mean` (với shift(1) để tránh leakage)
-  - **Recency weighting**: Linear up-weighting recent observations với `RECENCY_FACTOR=42.0`
-  - **Native categorical handling**: Dùng LightGBM `categorical_feature` parameter
-  - **Per-horizon scale grid search**: Grid search scale factor tối ưu cho từng horizon
-  - **Feature pruning**: Giữ top-100 features theo gain importance
-  - **LGB Native API + Skill Metric**: Dùng `lgb.Dataset`, `lgb.train` với custom `feval=lgb_skill_metric`
-  - **Merged into src/ module**: Tất cả enhancements được apply vào `src/config.py`, `src/features.py`, `src/models.py`
-  - **15 seeds**: Giữ nguyên từ v6
+- v6 → v7 changes:
+  - **BỎ linear calibration**: V6 dùng `a×pred+b` trên OOF; V7 bỏ hoàn toàn
+  - **THAY bằng per-horizon scale grid**: Với `SCALE_GRID=[0.95..1.30]`, tìm scale tối ưu riêng cho từng H (run thực tế: H1/H3×1.1, H10×0.95, H25×1.15)
+  - **THÊM pseudo-target features**: `feature_al/am/cg/s` shifted by `OPTIMAL_SHIFTS[horizon]` = giá trị từ h steps trước → causal signal
+  - **THÊM target lag features**: `y_lag1`, `y_lag3`, `y_diff1`, `y_expand_mean` (shift(1) tránh leakage)
+  - **THÊM recency weighting**: `RECENCY_FACTOR=42.0`, nhân trọng số training theo `(0.5 + 42·recency_normalized)`
+  - **THÊM feature pruning**: top-100 features theo gain importance (sau probe tìm best_iter)
+  - **THÊM native categorical**: LightGBM `categorical_feature` parameter thay vì chỉ encode thủ công
+  - **THÊM LGB Native API + Skill Metric**: `lgb.Dataset`/`lgb.train` + `feval=lgb_skill_metric` thay vì sklearn API
+  - **Seeds**: 15 seeds (giữ nguyên từ V6)
+  - **Kết quả**: Val tăng vượt bậc (0.248→0.770 scaled), Public LB 0.2462→0.5914
+  - **`src/`**: chung logic V7, `config.py` giữ 15 seeds
+- v7 → v8 changes:
+  - **THÊM pseudo offsets**: `PSEUDO_OFFSETS=[-2,-1,1]` — shift lân cận quanh optimal cho mỗi feature (~12 features mới)
+  - **THÊM pseudo interactions**: `al-am diff/ratio/prod`, `al-cg diff/ratio`, `pseudo_al_lag1`, `pseudo_am_diff` (~7 features mới)
+  - **THAY per-horizon → per-code scaling**: Tìm scale tối ưu riêng cho từng `code` trên val (min 30 samples, fallback global)
+  - **Finer scale grid**: 8→17 values, range 0.90-1.40, bước 0.02-0.05
+  - **Giảm seeds**: 15→10
+  - **Tăng feature budget**: top-100→top-130
