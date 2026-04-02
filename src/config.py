@@ -33,20 +33,21 @@ ROLLING_WINDOWS = [5, 10, 20]
 # Optimal feature shifts per horizon (from EDA: feature_al is #1 strongest signal)
 # feature shifted by -h means "value from h steps ago" = causal pseudo-target
 OPTIMAL_SHIFTS = {1: -1, 3: -3, 10: -10, 25: -25}
+PSEUDO_OFFSETS = [-2, -1, 1]  # nearby offsets around optimal shift
 
 # Recency weighting: up-weight recent observations during training
 USE_RECENCY_WEIGHTING = True
 RECENCY_FACTOR = 42.0  # max multiplier at latest ts_index
 
 # Feature pruning: keep top N by importance
-TOP_FEATURES = 100
+TOP_FEATURES = 130
 
 # Scale grid for per-horizon optimization
-SCALE_GRID = [0.95, 1.00, 1.05, 1.10, 1.15, 1.20, 1.25, 1.30]
+SCALE_GRID = [0.90, 0.92, 0.95, 0.97, 1.00, 1.02, 1.05, 1.07, 1.10, 1.12, 1.15, 1.17, 1.20, 1.25, 1.30, 1.35, 1.40]
 
 # ── Seeds ──
-N_SEEDS = 15
-SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11, 314, 617, 888, 999, 5555]
+N_SEEDS = 10
+SEEDS = [42, 2024, 12345, 99, 420, 777, 1337, 2025, 7, 11]
 
 # ── LightGBM Params ──
 LGB_PARAMS = {
