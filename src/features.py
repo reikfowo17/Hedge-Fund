@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import gc
-from config import GROUP_COLS, KEY_FEATURES, EXTRA_FEATURES, LAG_STEPS, ROLLING_WINDOWS, OPTIMAL_SHIFTS, TARGET
+from config import GROUP_COLS, KEY_FEATURES, EXTRA_FEATURES, LAG_STEPS, ROLLING_WINDOWS, OPTIMAL_SHIFTS, PSEUDO_OFFSETS, TARGET
 
 
 def compute_target_stats(df):
@@ -177,18 +177,32 @@ def build_features(data, target_stats, freq_stats, horizon):
     grouped = df.groupby(GROUP_COLS, sort=False)
 
     # ── 11. Pseudo-target features (feature_al is #1 strongest signal)
-    # feature_al shifted by -h = value from h steps ago = causal "pseudo-target"
-    if E('feature_al'):
-        df['pseudo_al'] = grouped['feature_al'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
-    if E('feature_am'):
-        df['pseudo_am'] = grouped['feature_am'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
-    if E('feature_cg'):
-        df['pseudo_cg'] = grouped['feature_cg'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
-    if E('feature_s'):
-        df['pseudo_s']  = grouped['feature_s'].shift(OPTIMAL_SHIFTS[horizon]).astype(np.float32)
+    # feature shifted by -h = value from h steps ago = causal "pseudo-target"
+    opt_shift = OPTIMAL_SHIFTS[horizon]
+    pseudo_feats = [('feature_al', 'al'), ('feature_am', 'am'), ('feature_cg', 'cg'), ('feature_s', 's')]
+    for feat_name, short in pseudo_feats:
+        if E(feat_name):
+            # Main pseudo-target at optimal shift
+            df[f'pseudo_{short}'] = grouped[feat_name].shift(opt_shift).astype(np.float32)
+            # Nearby offsets for richer signal
+            for offset in PSEUDO_OFFSETS:
+                s = opt_shift + offset
+                df[f'pseudo_{short}_o{offset}'] = grouped[feat_name].shift(s).astype(np.float32)
+
+    # Pseudo-target interactions
+    if E('pseudo_al') and E('pseudo_am'):
+        df['pseudo_al_am_diff']  = (df['pseudo_al'] - df['pseudo_am']).astype(np.float32)
+        df['pseudo_al_am_ratio'] = (df['pseudo_al'] / (df['pseudo_am'].abs() + 1e-7)).astype(np.float32)
+        df['pseudo_al_am_prod']  = (df['pseudo_al'] * df['pseudo_am']).astype(np.float32)
+    if E('pseudo_al') and E('pseudo_cg'):
+        df['pseudo_al_cg_diff']  = (df['pseudo_al'] - df['pseudo_cg']).astype(np.float32)
+        df['pseudo_al_cg_ratio'] = (df['pseudo_al'] / (df['pseudo_cg'].abs() + 1e-7)).astype(np.float32)
     # Momentum of pseudo-targets
     if E('pseudo_al'):
         df['pseudo_al_diff'] = grouped['pseudo_al'].diff(1).astype(np.float32)
+        df['pseudo_al_lag1'] = grouped['pseudo_al'].shift(1).astype(np.float32)
+    if E('pseudo_am'):
+        df['pseudo_am_diff'] = grouped['pseudo_am'].diff(1).astype(np.float32)
 
     # ── 12. Target lags (autocorrelation signal)
     # CAUTION: past target is available in train rows, NaN in test rows.
